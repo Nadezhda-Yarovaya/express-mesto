@@ -8,8 +8,18 @@ module.exports.getUsers = async (req, res) => {
 };
 
 module.exports.getUserById = async (req, res) => {
-  const user = await User.findById(req.params.userId);
+  try {
+const user = await User.findById(req.params.userId);
+console.log('user:' + user);
+if (user)
+{
   res.status(200).send(user);
+} else {
+  return res.status(404).send({message: "Запрашиваемый пользователь не найден"});
+}
+  } catch(err) {
+    res.status(500).send({ message: "Ошибка валидации", ...err });
+  }
 };
 
 module.exports.createUser = async (req, res) => {
@@ -21,14 +31,15 @@ module.exports.createUser = async (req, res) => {
     } else {
       return res
         .status(400)
-        .send({ message: "400 ошибка, нет данных в req.body" });
+        .send({ message: "Неверно переданы данные пользователя" });
     }
   } catch (err) {
-    console.log(err);
+    res.status(500).send({ message: "Ошибка валидации", ...err });
   }
 };
 
 module.exports.updateProfile = async (req, res) => {
+  try {
   const userProfile = await User.findById(req.user._id);
   const newName = req.body.name;
   res.status(200).send(
@@ -38,9 +49,13 @@ module.exports.updateProfile = async (req, res) => {
       },
     })
   );
+  } catch(err) {
+    res.status(500).send({ message: "Ошибка валидации", ...err });
+  }
 };
 
 module.exports.updateAvatar = async (req, res) => {
+  try {
   const userProfile = await User.findById(req.user._id);
   const newAvatar = req.body.avatar;
   res.status(200).send(
@@ -50,4 +65,7 @@ module.exports.updateAvatar = async (req, res) => {
       },
     })
   );
+} catch(err) {
+  res.status(500).send({ message: "Ошибка валидации", ...err });
+}
 };
