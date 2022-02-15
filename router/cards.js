@@ -7,7 +7,8 @@ const {
   deleteCardById,
   likeCard,
   dislikeCard,
-} = require("../controllers/cards"); /* create*/
+} = require("../controllers/cards");
+
 cardsRouter.get("/cards", getCards);
 cardsRouter.post("/cards", express.json(), createCard);
 cardsRouter.delete("/cards/:cardId", deleteCardById);

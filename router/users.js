@@ -8,6 +8,7 @@ const {
   updateProfile,
   updateAvatar,
 } = require("../controllers/users");
+
 usersRouter.get("/users", getUsers);
 usersRouter.get("/users/:userId", getUserById);
 usersRouter.post("/users", express.json(), createUser);
