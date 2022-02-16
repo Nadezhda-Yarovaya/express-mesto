@@ -5,12 +5,7 @@ module.exports = {
     amd: true,
     node: true,
   },
-  extends: [
-    "eslint:recommended",
-    "plugin:react/recommended",
-    "plugin:@typescript-eslint/recommended",
-  ],
-  parser: "@typescript-eslint/parser",
+  extends: ["plugin:react/recommended", "airbnb-base"],
   parserOptions: {
     ecmaFeatures: {
       jsx: true,
@@ -18,11 +13,12 @@ module.exports = {
     ecmaVersion: "latest",
     sourceType: "module",
   },
-  plugins: ["react", "@typescript-eslint"],
   rules: {
-    "@typescript-eslint/no-var-requires": 0,
-    "no-underscore-dangle": 0,
-      "no-param-reassign": 0
+    "no-underscore-dangle": [1, { allow: ["_id"] }],
+    quotes: "off",
+    "consistent-return": "off",
+    "comma-dangle": "off",
+    "no-console": "off",
   },
   settings: {
     react: {

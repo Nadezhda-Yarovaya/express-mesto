@@ -1,5 +1,6 @@
-const Card = require("../models/card");
 const mongoose = require("mongoose");
+const Card = require("../models/card");
+
 const db = mongoose.connection;
 
 module.exports.getCards = async (req, res) => {
@@ -27,12 +28,12 @@ module.exports.createCard = async (req, res) => {
     } else {
       return res
         .status(ERROR_CODE_REQUEST)
-        .send({ message: "Неверно переданы данные карточки" });
+        .send({ message: "Не переданы данные карточки" });
     }
   } catch (err) {
-    if (err.errors.name.name === "ValidatorError") {
+    if (err.name === "ValidationError") {
       return res
-        .status(ERROR_CODE_SERVER)
+        .status(ERROR_CODE_REQUEST)
         .send({ message: "Ошибка валидации" });
     }
     res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });
@@ -42,6 +43,7 @@ module.exports.createCard = async (req, res) => {
 module.exports.deleteCardById = async (req, res) => {
   const ERROR_CODE_SERVER = 500;
   const ERROR_CODE_NOTFOUND = 404;
+  const ERROR_CODE_REQUEST = 400;
   try {
     const cardToDelete = await Card.findById(req.params.cardId);
     if (cardToDelete) {
@@ -52,12 +54,18 @@ module.exports.deleteCardById = async (req, res) => {
         .send({ message: "Запрашиваемая карточка не найдена" });
     }
   } catch (err) {
-    res.status(ERROR_CODE_SERVER).send({ message: "Ошибка валидации"});
+    if (err.name === "CastError") {
+      return res
+        .status(ERROR_CODE_REQUEST)
+        .send({ message: "Неверные данные карточки" });
+    }
+    res.status(ERROR_CODE_SERVER).send({ message: "Ошибка валидации" });
   }
 };
 
 module.exports.likeCard = async (req, res) => {
   const ERROR_CODE_SERVER = 500;
+  const ERROR_CODE_REQUEST = 400;
   try {
     res
       .status(200)
@@ -65,16 +73,22 @@ module.exports.likeCard = async (req, res) => {
         await Card.findByIdAndUpdate(
           req.params.cardId,
           { $addToSet: { likes: req.user._id } },
-          { new: true }
+          { new: true },
         )
       );
   } catch (err) {
-    res.status(ERROR_CODE_SERVER).send({ message: "Ошибка валидации"});
+    if (err.name === "CastError") {
+      return res
+        .status(ERROR_CODE_REQUEST)
+        .send({ message: "Неверные данные карточки" });
+    }
+    res.status(ERROR_CODE_SERVER).send({ message: "Ошибка валидации" });
   }
 };
 
 module.exports.dislikeCard = async (req, res) => {
   const ERROR_CODE_SERVER = 500;
+  const ERROR_CODE_REQUEST = 400;
   try {
     res
       .status(200)
@@ -82,10 +96,15 @@ module.exports.dislikeCard = async (req, res) => {
         await Card.findByIdAndUpdate(
           req.params.cardId,
           { $pull: { likes: req.user._id } },
-          { new: true }
+          { new: true },
         )
       );
   } catch (err) {
+    if (err.name === "CastError") {
+      return res
+        .status(ERROR_CODE_REQUEST)
+        .send({ message: "Неверные данные карточки" });
+    }
     res.status(ERROR_CODE_SERVER).send({ message: "Ошибка валидации" });
   }
 };

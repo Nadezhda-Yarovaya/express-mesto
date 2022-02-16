@@ -1,5 +1,6 @@
-const User = require("../models/user");
 const mongoose = require("mongoose");
+const User = require("../models/user");
+
 const db = mongoose.connection;
 
 module.exports.getUsers = async (req, res) => {
@@ -19,6 +20,7 @@ module.exports.getUsers = async (req, res) => {
 module.exports.getUserById = async (req, res) => {
   const ERROR_CODE_SERVER = 500;
   const ERROR_CODE_NOTFOUND = 404;
+  const ERROR_CODE_REQUEST = 400;
   try {
     const user = await User.findById(req.params.userId);
     if (user) {
@@ -29,11 +31,12 @@ module.exports.getUserById = async (req, res) => {
         .send({ message: "Запрашиваемый пользователь не найден" });
     }
   } catch (err) {
-    if (
-      res
-        .status(ERROR_CODE_SERVER)
-        .send({ message: "Произошла ошибка сервера" })
-    );
+    if (err.name === "CastError") {
+      return res
+        .status(ERROR_CODE_REQUEST)
+        .send({ message: "Неверно переданы данные пользователя" });
+    }
+    res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });
   }
 };
 
@@ -43,17 +46,16 @@ module.exports.createUser = async (req, res) => {
   try {
     if (Object.keys(req.body).length !== 0) {
       const newUser = new User(req.body);
-      console.log(newUser);
       res.status(200).send(await newUser.save());
     } else {
       return res
         .status(ERROR_CODE_REQUEST)
-        .send({ message: "Неверно переданы данные пользователя" });
+        .send({ message: "Не переданы данные пользователя" });
     }
   } catch (err) {
-    if (err.errors.name.name === "ValidatorError") {
+    if (err.name === "ValidationError") {
       return res
-        .status(ERROR_CODE_SERVER)
+        .status(ERROR_CODE_REQUEST)
         .send({ message: "Ошибка валидации" });
     }
     res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });
@@ -61,6 +63,8 @@ module.exports.createUser = async (req, res) => {
 };
 
 module.exports.updateProfile = async (req, res) => {
+  const ERROR_CODE_SERVER = 500;
+  const ERROR_CODE_REQUEST = 400;
   try {
     if (req.body.name) {
       const userProfile = await User.findById(req.user._id);
@@ -73,14 +77,21 @@ module.exports.updateProfile = async (req, res) => {
         })
       );
     } else {
-      res.send({ message: "Неверно переданы данные пользователя" });
+      res.send({ message: "Не переданы данные пользователя" });
     }
   } catch (err) {
-    res.status(500).send({ message: "Произошла ошибка сервера" });
+    if (err.name === "ValidationError") {
+      return res
+        .status(ERROR_CODE_REQUEST)
+        .send({ message: "Ошибка валидации" });
+    }
+    res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });
   }
 };
 
 module.exports.updateAvatar = async (req, res) => {
+  const ERROR_CODE_SERVER = 500;
+  const ERROR_CODE_REQUEST = 400;
   try {
     if (req.body.avatar) {
       const userProfile = await User.findById(req.user._id);
@@ -93,9 +104,14 @@ module.exports.updateAvatar = async (req, res) => {
         })
       );
     } else {
-      res.send({ message: "Неверно переданы данные пользователя" });
+      res.send({ message: "Не переданы данные пользователя" });
     }
   } catch (err) {
-    res.status(500).send({ message: "Произошла ошибка сервера" });
+    if (err.name === "ValidationError") {
+      return res
+        .status(ERROR_CODE_REQUEST)
+        .send({ message: "Ошибка валидации" });
+    }
+    res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });
   }
 };
