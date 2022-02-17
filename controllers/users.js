@@ -65,9 +65,13 @@ module.exports.createUser = async (req, res) => {
 module.exports.updateProfile = async (req, res) => {
   const ERROR_CODE_SERVER = 500;
   const ERROR_CODE_REQUEST = 400;
+  const ERROR_CODE_NOTFOUND = 404;
+
   try {
+    console.log(`id: ${req.user._id}`);
+    const userProfile = await User.findById(req.user._id);
+    console.log(`userProfile: ${userProfile}`);
     if (req.body.name) {
-      const userProfile = await User.findById(req.user._id);
       const newName = req.body.name;
       res.status(200).send(
         await db.collections.users.updateOne(userProfile, {
@@ -80,10 +84,16 @@ module.exports.updateProfile = async (req, res) => {
       res.send({ message: "Не переданы данные пользователя" });
     }
   } catch (err) {
+    console.log(err.name);
     if (err.name === "ValidationError") {
       return res
         .status(ERROR_CODE_REQUEST)
         .send({ message: "Ошибка валидации" });
+    }
+    if (err.name === "CastError") {
+      return res
+        .status(ERROR_CODE_NOTFOUND)
+        .send({ message: "Запрашиваемый пользователь не найден" });
     }
     res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });
   }
@@ -92,6 +102,7 @@ module.exports.updateProfile = async (req, res) => {
 module.exports.updateAvatar = async (req, res) => {
   const ERROR_CODE_SERVER = 500;
   const ERROR_CODE_REQUEST = 400;
+  const ERROR_CODE_NOTFOUND = 404;
   try {
     if (req.body.avatar) {
       const userProfile = await User.findById(req.user._id);
@@ -111,6 +122,11 @@ module.exports.updateAvatar = async (req, res) => {
       return res
         .status(ERROR_CODE_REQUEST)
         .send({ message: "Ошибка валидации" });
+    }
+    if (err.name === "CastError") {
+      return res
+        .status(ERROR_CODE_NOTFOUND)
+        .send({ message: "Запрашиваемый пользователь не найден" });
     }
     res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });
   }

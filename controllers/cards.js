@@ -42,10 +42,11 @@ module.exports.createCard = async (req, res) => {
 
 module.exports.deleteCardById = async (req, res) => {
   const ERROR_CODE_SERVER = 500;
-  const ERROR_CODE_NOTFOUND = 404;
   const ERROR_CODE_REQUEST = 400;
+  const ERROR_CODE_NOTFOUND = 404;
   try {
     const cardToDelete = await Card.findById(req.params.cardId);
+
     if (cardToDelete) {
       res.status(200).send(await db.collections.cards.deleteOne(cardToDelete));
     } else {
@@ -66,16 +67,25 @@ module.exports.deleteCardById = async (req, res) => {
 module.exports.likeCard = async (req, res) => {
   const ERROR_CODE_SERVER = 500;
   const ERROR_CODE_REQUEST = 400;
+  const ERROR_CODE_NOTFOUND = 404;
+
   try {
-    res
-      .status(200)
-      .send(
-        await Card.findByIdAndUpdate(
-          req.params.cardId,
-          { $addToSet: { likes: req.user._id } },
-          { new: true },
-        )
-      );
+    const currentCard = await Card.findById(req.params.cardId);
+    if (currentCard) {
+      res
+        .status(200)
+        .send(
+          await Card.findByIdAndUpdate(
+            req.params.cardId,
+            { $addToSet: { likes: req.user._id } },
+            { new: true }
+          )
+        );
+    } else {
+      return res
+        .status(ERROR_CODE_NOTFOUND)
+        .send({ message: "Запрашиваемый пользователь не найден" });
+    }
   } catch (err) {
     if (err.name === "CastError") {
       return res
@@ -89,16 +99,24 @@ module.exports.likeCard = async (req, res) => {
 module.exports.dislikeCard = async (req, res) => {
   const ERROR_CODE_SERVER = 500;
   const ERROR_CODE_REQUEST = 400;
+  const ERROR_CODE_NOTFOUND = 404;
   try {
-    res
-      .status(200)
-      .send(
-        await Card.findByIdAndUpdate(
-          req.params.cardId,
-          { $pull: { likes: req.user._id } },
-          { new: true },
-        )
-      );
+    const currentCard = await Card.findById(req.params.cardId);
+    if (currentCard) {
+      res
+        .status(200)
+        .send(
+          await Card.findByIdAndUpdate(
+            req.params.cardId,
+            { $pull: { likes: req.user._id } },
+            { new: true }
+          )
+        );
+    } else {
+      return res
+        .status(ERROR_CODE_NOTFOUND)
+        .send({ message: "Запрашиваемая карточка не найдена" });
+    }
   } catch (err) {
     if (err.name === "CastError") {
       return res
