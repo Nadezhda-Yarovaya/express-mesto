@@ -4,12 +4,19 @@ const cardSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    minlength: 2,
+    minlength: [2, "Минимум 2 символа, но получили {VALUE}"],
     maxlength: 30,
   },
   link: {
     type: String,
     required: true,
+    minlength: [2, "Минимум 2 символа, но получили {VALUE}"],
+    maxlength: 30,
+    match: [
+      /^https*:\/\/w?w?w?.?[-:/._~?#+,;=&'()*@!$\w]#?/g,
+      "Неверный формат ссылки",
+    ],
+    //match: [/^\d{3}$/, "неверный формат ссылки"],
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
@@ -27,3 +34,5 @@ const cardSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model("card", cardSchema);
+
+//minlength: [2, "Минимум 2 символа, но получили {VALUE}"],
