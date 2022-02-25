@@ -12,8 +12,6 @@ const {
 
 const { auth } = require("../middlewares/auth");
 
-//const { errorHandling } = require("../middlewares/errorHandling");
-
 cardsRouter.get("/cards", auth, getCards);
 cardsRouter.post("/cards", express.json(), auth, createCard);
 cardsRouter.delete("/cards/:cardId", auth, deleteCardById);

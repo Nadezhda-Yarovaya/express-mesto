@@ -1,12 +1,8 @@
-//const mongoose = require("mongoose");
-
 const bcrypt = require("bcrypt");
 
 const validator = require("validator");
 
 const User = require("../models/user");
-
-//const db = mongoose.connection;
 
 const { generateToken } = require("../middlewares/jwt");
 
@@ -116,30 +112,24 @@ module.exports.updateProfile = (req, res, next) => {
   }
 
   const opts = { runValidators: true };
+  const newName = req.body.name;
+  const newAbout = req.body.about;
 
-  User.findById(req.user._id)
-    .then((user) => {
-      const newName = req.body.name;
-      const newAbout = req.body.about;
-
-      User.updateOne(
-        {
-          _id: user._id,
-        },
-        {
-          $set: {
-            name: newName,
-            about: newAbout,
-          },
-        },
-        opts
-      )
-        .then((updated) => {
-          res.status(200).send(updated);
-        })
-        .catch(next);
+  User.updateOne(
+    {
+      _id: req.user._id,
+    },
+    {
+      $set: {
+        name: newName,
+        about: newAbout,
+      },
+    },
+    opts
+  )
+    .then((updated) => {
+      res.status(200).send(updated);
     })
-
     .catch(next);
 };
 
@@ -149,28 +139,21 @@ module.exports.updateAvatar = (req, res, next) => {
   }
 
   const opts = { runValidators: true };
-
-  User.findById(req.user._id)
-    .then((user) => {
-      const newAvatar = req.body.avatar;
-
-      User.updateOne(
-        {
-          _id: user._id,
-        },
-        {
-          $set: {
-            avatar: newAvatar,
-          },
-        },
-        opts
-      )
-        .then((updated) => {
-          res.status(200).send(updated);
-        })
-        .catch(next);
+  const newAvatar = req.body.avatar;
+  User.updateOne(
+    {
+      _id: req.user._id,
+    },
+    {
+      $set: {
+        avatar: newAvatar,
+      },
+    },
+    opts
+  )
+    .then((updated) => {
+      res.status(200).send(updated);
     })
-
     .catch(next);
 };
 

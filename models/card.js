@@ -16,7 +16,6 @@ const cardSchema = new mongoose.Schema({
       /^https*:\/\/w?w?w?.?[-:/._~?#+,;=&'()*@!$\w]#?/g,
       "Неверный формат ссылки",
     ],
-    //match: [/^\d{3}$/, "неверный формат ссылки"],
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
@@ -34,5 +33,3 @@ const cardSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model("card", cardSchema);
-
-//minlength: [2, "Минимум 2 символа, но получили {VALUE}"],
