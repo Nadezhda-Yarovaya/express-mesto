@@ -23,10 +23,10 @@ app.use((req, res, next) => {
 
 app.use(cookieParser());
 app.use(errorHandling);
+app.use("/", router);
+
 app.post("/register", express.json(), createUser);
 app.post("/auth", express.json(), login);
-
-app.use("/", router);
 
 mongoose.connect("mongodb://localhost:27017/mestodb", {
   useNewUrlParser: true,

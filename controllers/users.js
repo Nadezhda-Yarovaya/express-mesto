@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+//const mongoose = require("mongoose");
 
 const bcrypt = require("bcrypt");
 
@@ -6,17 +6,16 @@ const validator = require("validator");
 
 const User = require("../models/user");
 
-const db = mongoose.connection;
+//const db = mongoose.connection;
 
 const { generateToken } = require("../middlewares/jwt");
 
-//const MONGO_DUPLICATE_ERROR_CODE = 11000;
 const SALT_ROUND = 10;
 
 const { NotFoundError } = require("../errors/NotFoundError");
 const { BadRequest } = require("../errors/BadRequest");
 const { AlreadyExistsError } = require("../errors/AlreadyExistsError");
-//const { OwnerError } = require("../errors/OwnerError");
+const { WrongDataError } = require("../errors/WrongDataError");
 
 module.exports.getUsers = async (req, res, next) => {
   try {
@@ -31,56 +30,31 @@ module.exports.getUsers = async (req, res, next) => {
   }
 };
 
-module.exports.getUserMe = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.userId);
-    if (user) {
+module.exports.getUserById = (req, res, next) => {
+  User.findById(req.params.userId)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError("Запрашиваемый пользователь не найден");
+      }
       res.status(200).send(user);
-    } else {
-      throw new NotFoundError("Запрашиваемый пользователь не найден");
-    }
-  } catch (err) {
-    next(err);
-    /*
-    if (err.name === "CastError") {
-      return res
-        .status(ERROR_CODE_REQUEST)
-        .send({ message: "Неверно переданы данные пользователя" });
-    }
-    res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });*/
-  }
+    })
+    .catch(() => {
+      throw new BadRequest("Неверные данные");
+    })
+    .catch(next);
 };
-
-module.exports.getUserById = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.userId);
-    if (user) {
-      res.status(200).send(user);
-    } else {
-      throw new NotFoundError("Запрашиваемый пользователь не найден");
-    }
-  } catch (err) {
-    next(err);
-    /*
-    if (err.name === "CastError") {
-      return res
-        .status(ERROR_CODE_REQUEST)
-        .send({ message: "Неверно переданы данные пользователя" });
-    }
-    res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });
-  }*/
-  }
-};
-
-/*Тела запросов к серверу должны валидироваться до передачи обработки в контроллеры.
-Если запрос принимает какую-то информацию в заголовках или параметрах, валидируйте и её
-*/
 
 module.exports.createUser = (req, res, next) => {
   const { email, password } = req.body;
+  const user = new User(req.body);
 
   if (!validator.isEmail(email)) {
     throw new BadRequest("Электронная почта в неверном формате");
+  }
+  const error = user.validateSync();
+  if (error) {
+    const pathname = "password";
+    throw new BadRequest(error.errors[pathname].message);
   }
 
   bcrypt
@@ -98,44 +72,31 @@ module.exports.createUser = (req, res, next) => {
         })
         .catch((err) => {
           next(err);
-          /*
-          if (err.code === MONGO_DUPLICATE_ERROR_CODE) {
-            return res
-              .status(409)
-              .send({ message: "Такой пользователь уже существует" });
-          }
-          res.status(404).send({ message: "mist", ...err });*/
-        }); // user create close
+        });
     })
-    .catch(next); //bcrypt hash close
+    .catch(next);
 };
 
 module.exports.login = async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).send({ message: "Неверный email или пароль " });
+    throw new WrongDataError("Неверный email или пароль");
   }
 
   User.findOne({ email })
     .select("+password")
-    .orFail(new Error("Пользователь не найден!"))
+    .orFail(new NotFoundError("Пользователь не найден!"))
     .then((currentUser) => {
-      /*  if (!admin) {
-        return res.status(400).send({ message: "Не верный email или пароль" });
-      }*/
-
       bcrypt
         .compare(password, currentUser.password)
         .then((matched) => {
           if (!matched) {
             return Promise.reject(
-              new Error({ message: "Неверный email или пароль" })
+              new WrongDataError({ message: "Неверный email или пароль" })
             );
           }
-
           const token = generateToken({ _id: currentUser._id });
-
           res.cookie("mestoToken", token, {
             maxAge: 1000 * 60 * 60 * 24 * 7,
             httpOnly: true,
@@ -143,86 +104,87 @@ module.exports.login = async (req, res, next) => {
           });
 
           res.status(200).send({ message: "Успешная авторизация" });
-          /* тут ай ди можно  */
         })
-        .catch((err) => {
-          next(err);
-          /*
-          res
-            .status(401)
-            .send({ message: "Не верный email или пароль", ...err });
-        });
-        */
-        });
+        .catch(next);
     })
     .catch(next);
 };
 
-module.exports.updateProfile = async (req, res, next) => {
-  try {
-    //console.log(`id: ${req.user._id}`);
-    const userProfile = await User.findById(req.user._id);
-    //console.log(`userProfile: ${userProfile}`);
-    if (req.body.name) {
+module.exports.updateProfile = (req, res, next) => {
+  if (!req.body.name || !req.body.about) {
+    throw new NotFoundError("Не переданы данные пользователя");
+  }
+
+  const opts = { runValidators: true };
+
+  User.findById(req.user._id)
+    .then((user) => {
       const newName = req.body.name;
-      res.status(200).send(
-        await db.collections.users.updateOne(userProfile, {
+      const newAbout = req.body.about;
+
+      User.updateOne(
+        {
+          _id: user._id,
+        },
+        {
           $set: {
             name: newName,
+            about: newAbout,
           },
+        },
+        opts
+      )
+        .then((updated) => {
+          res.status(200).send(updated);
         })
-      );
-    } else {
-      throw new NotFoundError("Не переданы данные пользователя");
-    }
-  } catch (err) {
-    next(err);
+        .catch(next);
+    })
 
-    /*
-    console.log(err.name);
-    if (err.name === "ValidationError") {
-      return res
-        .status(ERROR_CODE_REQUEST)
-        .send({ message: "Ошибка валидации" });
-    }
-    if (err.name === "CastError") {
-      return res
-        .status(ERROR_CODE_NOTFOUND)
-        .send({ message: "Запрашиваемый пользователь не найден" });
-    }
-    res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });
-    */
-  }
+    .catch(next);
 };
 
-module.exports.updateAvatar = async (req, res, next) => {
-  try {
-    if (req.body.avatar) {
-      const userProfile = await User.findById(req.user._id);
+module.exports.updateAvatar = (req, res, next) => {
+  if (!req.body.avatar) {
+    throw new NotFoundError("Не переданы данные пользователя");
+  }
+
+  const opts = { runValidators: true };
+
+  User.findById(req.user._id)
+    .then((user) => {
       const newAvatar = req.body.avatar;
-      res.status(200).send(
-        await db.collections.users.updateOne(userProfile, {
+
+      User.updateOne(
+        {
+          _id: user._id,
+        },
+        {
           $set: {
             avatar: newAvatar,
           },
+        },
+        opts
+      )
+        .then((updated) => {
+          res.status(200).send(updated);
         })
-      );
-    } else {
-      throw new NotFoundError("Не переданы данные пользователя");
-    }
-  } catch (err) {
-    next(err);
-    /*
-    if (err.name === "ValidationError") {
-      return res
-        .status(ERROR_CODE_REQUEST)
-        .send({ message: "Ошибка валидации" });
-    }
-    if (err.name === "CastError") {
-      return res
-        .status(ERROR_CODE_NOTFOUND)
-        .send({ message: "Запрашиваемый пользователь не найден" });
-    }
-    res.status(ERROR_CODE_SERVER).send({ message: "Произошла ошибка сервера" });*/
-  }
+        .catch(next);
+    })
+
+    .catch(next);
+};
+
+module.exports.getCurrentUser = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((user) => {
+      console.log(user);
+      if (!user) {
+        throw new NotFoundError("Запрашиваемый пользователь не найден");
+      }
+      res.status(200).send(user);
+    })
+    .catch((err) => {
+      console.log(err);
+      throw new BadRequest("Переданы неверные данные ");
+    });
 };
