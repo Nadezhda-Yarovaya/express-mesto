@@ -48,6 +48,11 @@ module.exports.deleteCardById = async (req, res) => {
     const cardToDelete = await Card.findById(req.params.cardId);
 
     if (cardToDelete) {
+      if (!cardToDelete.owner.equals(req.user._id)) {
+        return res
+          .status(401)
+          .send({ message: "Нельзя удалять чужие карточки" });
+      }
       res.status(200).send(await db.collections.cards.deleteOne(cardToDelete));
     } else {
       return res

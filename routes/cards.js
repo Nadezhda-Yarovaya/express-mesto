@@ -10,11 +10,13 @@ const {
   dislikeCard,
 } = require("../controllers/cards");
 
-cardsRouter.get("/cards", getCards);
-cardsRouter.post("/cards", express.json(), createCard);
-cardsRouter.delete("/cards/:cardId", deleteCardById);
+const { auth } = require("../middlewares/auth");
 
-cardsRouter.put("/cards/:cardId/likes", likeCard);
-cardsRouter.delete("/cards/:cardId/likes", dislikeCard);
+cardsRouter.get("/cards", auth, getCards);
+cardsRouter.post("/cards", express.json(), auth, createCard);
+cardsRouter.delete("/cards/:cardId", auth, deleteCardById);
+
+cardsRouter.put("/cards/:cardId/likes", auth, likeCard);
+cardsRouter.delete("/cards/:cardId/likes", auth, dislikeCard);
 
 exports.cardsRouter = cardsRouter;

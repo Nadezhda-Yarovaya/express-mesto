@@ -1,7 +1,7 @@
 {
   "name": "express-mesto",
   "version": "1.0.0",
-  "description": "13я работа в Я.Практикуме, работа на Express.js",
+  "description": "14я работа в Я.Практикуме, работа на Express.js, с авторизацией",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -21,9 +21,13 @@
   },
   "homepage": "https://github.com/Nadezhda-Yarovaya/express-mesto#readme",
   "dependencies": {
+    "bcrypt": "^5.0.1",
     "body-parser": "^1.19.1",
+    "cookie-parser": "^1.4.6",
     "express": "^4.17.2",
-    "mongoose": "^6.2.1"
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.2.1",
+    "validator": "^13.7.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.11.0",
