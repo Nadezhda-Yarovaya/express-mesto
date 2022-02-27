@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+const validator = require("validator");
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -18,16 +20,18 @@ const userSchema = new mongoose.Schema({
     default:
       "https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png",
     minlength: [2, "Минимум 2 символа, а получили меньше"],
-    match: [
-      /^https*:\/\/w?w?w?.?[-:/._~?#+,;=&'()*@!$\w]#?/g,
-      "Неверный формат ссылки",
-    ],
+    validate: {
+      validator: (v) => validator.isURL(v),
+    },
   },
   email: {
     type: String,
     required: true,
     minlength: 2,
     unique: true,
+    validate: {
+      validator: (v) => validator.isEmail(v),
+    },
   },
   password: {
     type: String,

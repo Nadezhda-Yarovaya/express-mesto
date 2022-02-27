@@ -2,6 +2,15 @@ const express = require("express");
 
 const usersRouter = express.Router();
 
+const { celebrate, Joi } = require("celebrate");
+
+const {
+  validateUserById,
+  validateProfileData,
+  validateProfileAvatar,
+  validateUser
+} = require("../middlewares/validators");
+
 const {
   getUsers,
   getUserById,
@@ -10,12 +19,11 @@ const {
   getCurrentUser,
 } = require("../controllers/users");
 
-const { auth } = require("../middlewares/auth");
+usersRouter.get("/users", getUsers);
+usersRouter.get("/users/me", validateProfileData, getCurrentUser);
 
-usersRouter.get("/users", auth, getUsers);
-usersRouter.get("/users/me", auth, getCurrentUser);
-usersRouter.patch("/users/me", express.json(), auth, updateProfile);
-usersRouter.patch("/users/me/avatar", express.json(), auth, updateAvatar);
-usersRouter.get("/users/:userId", auth, getUserById);
+usersRouter.patch("/users/me", validateProfileData, updateProfile);
+usersRouter.patch("/users/me/avatar", validateProfileAvatar, updateAvatar);
+usersRouter.get("/users/:userId", validateUserById, getUserById);
 
 exports.usersRouter = usersRouter;

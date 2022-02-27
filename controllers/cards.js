@@ -1,76 +1,57 @@
-const mongoose = require("mongoose");
 const Card = require("../models/card");
 const { NotFoundError } = require("../errors/NotFoundError");
 const { BadRequest } = require("../errors/BadRequest");
 const { OwnerError } = require("../errors/OwnerError");
-
-const db = mongoose.connection;
+const { AlreadyExistsError } = require("../errors/OwnerError");
 
 module.exports.getCards = async (req, res, next) => {
-  Card.find({})
-    .then((cards) => {
-      if (cards.length > 0) {
-        res.status(200).send(cards);
-      } else {
-        throw new NotFoundError("Карточки не найдены");
-      }
-    })
-    .catch(next);
+  try {
+    const cards = await Card.find({});
+    res.status(200).send(cards);
+  } catch (err) {
+    next(err);
+  }
 };
 
 module.exports.createCard = async (req, res, next) => {
   try {
-    if (Object.keys(req.body).length !== 0) {
-      const { name, link } = req.body;
-      const card = new Card({ name, link, owner: req.user._id });
-
-      const error = card.validateSync();
-      if (error) {
-        let pathname = "name";
-
-        if (!error.errors[pathname]) {
-          pathname = "link";
-        }
-
-        throw new BadRequest(error.errors[pathname].message);
-      }
-
-      res.status(200).send(await card.save());
-    } else {
+    console.log(req.body);
+    if (Object.keys(req.body).length === 0) {
       throw new NotFoundError("Не переданы данные карточки");
     }
+    const { name, link } = req.body;
+    const card = new Card({ name, link, owner: req.user._id });
+
+    res.status(200).send(await card.save());
   } catch (err) {
-    console.log(err);
     next(err);
   }
 };
 
 module.exports.deleteCardById = (req, res, next) => {
-  Card.findById(req.params.cardId)
+  const { cardId } = req.params;
+
+  Card.findById(cardId)
+    .orFail(() => new NotFoundError("Нет карточки с таким id"))
     .then((cardToDelete) => {
-      if (!cardToDelete) {
-        throw new NotFoundError("Нет карточки с таким id");
-      }
       if (!cardToDelete.owner.equals(req.user._id)) {
-        throw new OwnerError("Нельзя удалять чужие карточки");
+        return next(new OwnerError("Нельзя удалять чужие карточки"));
       }
-      db.collections.cards
-        .deleteOne(cardToDelete)
-        .then((card) => {
-          res.status(200).send(card);
-        })
-        .catch((err) => {
-          if (err.name === "CastError") {
-            throw new BadRequest("Неверные данные карточки");
-          }
-        })
-        .catch(next);
+      return cardToDelete
+        .remove()
+        .then(() => res.send({ message: "Карточка удалена" }));
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === "CastError") {
+        next(new BadRequest("Неверные данные карточки"));
+      } else next(err);
+    });
 };
 
 module.exports.likeCard = (req, res, next) => {
-  Card.findById(req.params.cardId)
+  const { cardId } = req.params;
+
+  Card.findById(cardId)
     .then((currentCard) => {
       if (!currentCard) {
         throw new NotFoundError("Запрашиваемая карточка не найдена");
@@ -86,10 +67,11 @@ module.exports.likeCard = (req, res, next) => {
         })
         .catch((err) => {
           if (err.name === "CastError") {
-            throw new BadRequest("Неверные данные карточки");
-          }
-        })
-        .catch(next);
+            next(new BadRequest("Неверные данные карточки"));
+          } else if (err.name === "MongoServerError" && err.code === 11000) {
+            next(new AlreadyExistsError("Такой пользователь уже существует"));
+          } else next(err);
+        });
     })
     .catch(next);
 };
@@ -111,10 +93,11 @@ module.exports.dislikeCard = (req, res, next) => {
         })
         .catch((err) => {
           if (err.name === "CastError") {
-            throw new BadRequest("Неверные данные карточки");
-          }
-        })
-        .catch(next);
+            next(new BadRequest("Неверные данные карточки"));
+          } else if (err.name === "MongoServerError" && err.code === 11000) {
+            next(new AlreadyExistsError("Такой пользователь уже существует"));
+          } else next(err);
+        });
     })
     .catch(next);
 };

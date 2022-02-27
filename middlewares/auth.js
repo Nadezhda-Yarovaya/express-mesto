@@ -1,12 +1,14 @@
 const jwt = require("jsonwebtoken");
 
+const { OwnerError } = require("../errors/OwnerError");
+
 const { NODE_ENV, JWT_SECRET } = process.env;
 
 module.exports.auth = (req, res, next) => {
-  const token = req.headers.authorization;
+  const token = req.cookies.mestoToken;
 
   if (!token) {
-    return res.status(403).send({ message: "Необходима авторизация" });
+    throw new OwnerError("Необходима авторизация");
   }
 
   let payload;
@@ -17,9 +19,8 @@ module.exports.auth = (req, res, next) => {
       NODE_ENV === "production" ? JWT_SECRET : "dev-secret"
     );
   } catch (err) {
-    return res.status(403).send({ message: "Нет доступа" });
+    next(new OwnerError("Нет доступа"));
   }
-
   req.user = payload;
 
   next();

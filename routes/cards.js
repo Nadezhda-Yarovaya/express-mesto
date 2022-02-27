@@ -3,6 +3,11 @@ const express = require("express");
 const cardsRouter = express.Router();
 
 const {
+  validateCreateCard,
+  validateCardById,
+} = require("../middlewares/validators");
+
+const {
   getCards,
   createCard,
   deleteCardById,
@@ -10,13 +15,11 @@ const {
   dislikeCard,
 } = require("../controllers/cards");
 
-const { auth } = require("../middlewares/auth");
+cardsRouter.get("/cards", getCards);
+cardsRouter.post("/cards", validateCreateCard, createCard);
+cardsRouter.delete("/cards/:cardId", validateCardById, deleteCardById);
 
-cardsRouter.get("/cards", auth, getCards);
-cardsRouter.post("/cards", express.json(), auth, createCard);
-cardsRouter.delete("/cards/:cardId", auth, deleteCardById);
-
-cardsRouter.put("/cards/:cardId/likes", auth, likeCard);
-cardsRouter.delete("/cards/:cardId/likes", auth, dislikeCard);
+cardsRouter.put("/cards/:cardId/likes", validateCardById, likeCard);
+cardsRouter.delete("/cards/:cardId/likes", validateCardById, dislikeCard);
 
 exports.cardsRouter = cardsRouter;

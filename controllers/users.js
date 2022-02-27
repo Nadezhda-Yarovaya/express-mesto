@@ -11,16 +11,12 @@ const SALT_ROUND = 10;
 const { NotFoundError } = require("../errors/NotFoundError");
 const { BadRequest } = require("../errors/BadRequest");
 const { AlreadyExistsError } = require("../errors/AlreadyExistsError");
-const { WrongDataError } = require("../errors/WrongDataError");
+const { OwnerError } = require("../errors/OwnerError");
 
 module.exports.getUsers = async (req, res, next) => {
   try {
     const users = await User.find({});
-    if (users.length > 0) {
-      res.status(200).send(users);
-    } else {
-      throw new NotFoundError("Пользователи не найдены");
-    }
+    res.status(200).send(users);
   } catch (err) {
     next(err);
   }
@@ -34,40 +30,40 @@ module.exports.getUserById = (req, res, next) => {
       }
       res.status(200).send(user);
     })
-    .catch(() => {
-      throw new BadRequest("Неверные данные");
-    })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === "CastError") {
+        next(new BadRequest("Неверные данные"));
+      } else {
+        next(err);
+      }
+    });
 };
 
 module.exports.createUser = (req, res, next) => {
-  const { email, password } = req.body;
+  const {
+    email, password, name, about, avatar
+  } = req.body;
   const user = new User(req.body);
-
-  if (!validator.isEmail(email)) {
-    throw new BadRequest("Электронная почта в неверном формате");
-  }
-  const error = user.validateSync();
-  if (error) {
-    const pathname = "password";
-    throw new BadRequest(error.errors[pathname].message);
-  }
 
   bcrypt
     .hash(password, SALT_ROUND)
     .then((hash) => {
-      User.create({ email, password: hash })
+      User.create({
+        email,
+        password: hash,
+        name,
+        about,
+        avatar,
+      })
         .then((createdUser) => {
           res.status(201).send(createdUser);
         })
         .catch((err) => {
-          console.log(err.name);
           if (err.name === "MongoServerError" && err.code === 11000) {
-            throw new AlreadyExistsError("Такой пользователь уже существует");
+            next(new AlreadyExistsError("Такой пользователь уже существует"));
+          } else {
+            next(err);
           }
-        })
-        .catch((err) => {
-          next(err);
         });
     })
     .catch(next);
@@ -76,20 +72,16 @@ module.exports.createUser = (req, res, next) => {
 module.exports.login = async (req, res, next) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    throw new WrongDataError("Неверный email или пароль");
-  }
-
   User.findOne({ email })
     .select("+password")
-    .orFail(new NotFoundError("Пользователь не найден!"))
+    .orFail(new OwnerError("Пользователь не найден!"))
     .then((currentUser) => {
       bcrypt
         .compare(password, currentUser.password)
         .then((matched) => {
           if (!matched) {
             return Promise.reject(
-              new WrongDataError({ message: "Неверный email или пароль" })
+              new OwnerError({ message: "Неверный email или пароль" })
             );
           }
           const token = generateToken({ _id: currentUser._id });
@@ -107,11 +99,7 @@ module.exports.login = async (req, res, next) => {
 };
 
 module.exports.updateProfile = (req, res, next) => {
-  if (!req.body.name || !req.body.about) {
-    throw new NotFoundError("Не переданы данные пользователя");
-  }
-
-  const opts = { runValidators: true };
+  const opts = { new: true, runValidators: true };
   const newName = req.body.name;
   const newAbout = req.body.about;
 
@@ -134,10 +122,6 @@ module.exports.updateProfile = (req, res, next) => {
 };
 
 module.exports.updateAvatar = (req, res, next) => {
-  if (!req.body.avatar) {
-    throw new NotFoundError("Не переданы данные пользователя");
-  }
-
   const opts = { runValidators: true };
   const newAvatar = req.body.avatar;
   User.updateOne(
@@ -167,7 +151,6 @@ module.exports.getCurrentUser = (req, res, next) => {
       res.status(200).send(user);
     })
     .catch((err) => {
-      console.log(err);
-      throw new BadRequest("Переданы неверные данные ");
+      next(err);
     });
 };

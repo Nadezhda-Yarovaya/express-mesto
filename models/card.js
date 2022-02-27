@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+const validator = require("validator");
+
 const cardSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -12,10 +14,9 @@ const cardSchema = new mongoose.Schema({
     required: true,
     minlength: [2, "Минимум 2 символа, но получили {VALUE}"],
     maxlength: 30,
-    match: [
-      /^https*:\/\/w?w?w?.?[-:/._~?#+,;=&'()*@!$\w]#?/g,
-      "Неверный формат ссылки",
-    ],
+    validate: {
+      validator: (v) => validator.isURL(v),
+    },
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
