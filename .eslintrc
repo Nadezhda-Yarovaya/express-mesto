@@ -6,7 +6,6 @@
     "no-underscore-dangle": [1, { "allow": ["_id"] }],
     "consistent-return": "off",
     "comma-dangle": "off",
-    "no-console": "off",
     "no-unused-vars": "off"
   }
 }

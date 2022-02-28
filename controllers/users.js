@@ -1,7 +1,5 @@
 const bcrypt = require("bcrypt");
 
-const validator = require("validator");
-
 const User = require("../models/user");
 
 const { generateToken } = require("../middlewares/jwt");
@@ -43,8 +41,6 @@ module.exports.createUser = (req, res, next) => {
   const {
     email, password, name, about, avatar
   } = req.body;
-  const user = new User(req.body);
-
   bcrypt
     .hash(password, SALT_ROUND)
     .then((hash) => {
@@ -56,7 +52,14 @@ module.exports.createUser = (req, res, next) => {
         avatar,
       })
         .then((createdUser) => {
-          res.status(201).send(createdUser);
+          res.status(201).send({
+            data: {
+              name: createdUser.name,
+              about: createdUser.about,
+              avatar: createdUser.avatar,
+              email: createdUser.email,
+            },
+          });
         })
         .catch((err) => {
           if (err.name === "MongoServerError" && err.code === 11000) {
@@ -103,7 +106,7 @@ module.exports.updateProfile = (req, res, next) => {
   const newName = req.body.name;
   const newAbout = req.body.about;
 
-  User.updateOne(
+  User.findByIdAndUpdate(
     {
       _id: req.user._id,
     },
@@ -122,9 +125,9 @@ module.exports.updateProfile = (req, res, next) => {
 };
 
 module.exports.updateAvatar = (req, res, next) => {
-  const opts = { runValidators: true };
+  const opts = { new: true, runValidators: true };
   const newAvatar = req.body.avatar;
-  User.updateOne(
+  User.findByIdAndUpdate(
     {
       _id: req.user._id,
     },
@@ -144,7 +147,6 @@ module.exports.updateAvatar = (req, res, next) => {
 module.exports.getCurrentUser = (req, res, next) => {
   User.findById(req.user._id)
     .then((user) => {
-      console.log(user);
       if (!user) {
         throw new NotFoundError("Запрашиваемый пользователь не найден");
       }

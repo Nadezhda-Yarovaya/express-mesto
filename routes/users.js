@@ -2,13 +2,10 @@ const express = require("express");
 
 const usersRouter = express.Router();
 
-const { celebrate, Joi } = require("celebrate");
-
 const {
   validateUserById,
   validateProfileData,
   validateProfileAvatar,
-  validateUser
 } = require("../middlewares/validators");
 
 const {

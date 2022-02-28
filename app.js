@@ -19,11 +19,11 @@ const { PORT = 3000 } = process.env;
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signup", validateUser, createUser);
 app.post("/signin", validateUser, login);
 
-app.use(cookieParser());
 app.use(auth);
 app.use("/", router);
 

@@ -54,6 +54,24 @@ const validateUser = celebrate({
       "string.min": "Минимальная длина - 2 символа",
       "any.required": "Поле обязательно для заполнения",
     }),
+    name: Joi.string().min(2).max(30).messages({
+      "string.min": "Минимальная длина - 2 символа",
+    }),
+    about: Joi.string().min(2).max(30).messages({
+      "string.min": "Минимальная длина - 2 символа",
+    }),
+    avatar: Joi.string()
+      .min(2)
+      .max(30)
+      .custom((value, helpers) => {
+        if (validator.isURL(value)) {
+          return value;
+        }
+        return helpers.message("Невалидная ссылка");
+      })
+      .messages({
+        "string.min": "Минимальная длина - 2 символа",
+      }),
   },
 });
 
